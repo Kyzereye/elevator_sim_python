@@ -66,9 +66,9 @@ class ElevatorSimulator:
                 direction = "up"
             else:
                 direction = "down"
-            self.print_status(f"The elevator is traveling {direction} to floor {target_floor} - {travel_time} sec.")
             if self.real_time:
                 time.sleep(travel_time)
+            self.print_status(f"The elevator is traveling {direction} to floor {target_floor} - {travel_time} sec.")
         
         return travel_time
     
