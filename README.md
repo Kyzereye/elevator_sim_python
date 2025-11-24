@@ -105,7 +105,7 @@ Floors Visited: 12,2,9,1,32
 
 3. **Elevator capacity** - No limit on number of passengers or weight capacity.
 
-4. **Emergency stops** - No handling of emergency situations or emergency stop buttons.
+4. **Emergency stops or Open Doors** - No handling of emergency situations or opening the doors as they are closing to extend passenger transfer time.
 
 5. **Door obstruction** - No handling of doors being held open or obstructed.
 
@@ -144,28 +144,6 @@ Log entries are appended to the file, so you can track multiple simulation runs 
 2025-11-24 13:26:07 - INFO - Visiting floor 2 from floor 12
 2025-11-24 13:26:07 - INFO - Completed floor 2 - Time elapsed: 108s (Travel: 100s, Doors: 4s, Passengers: 4s)
 ...
-```
-
-## Programmatic Usage
-
-The `get_stats()` method allows you to use the simulator programmatically:
-
-```python
-from elevator_sim import ElevatorSimulator
-
-# Create and run simulation
-simulator = ElevatorSimulator(start_floor=12, floors_to_visit=[2, 9, 1, 32], real_time=False)
-simulator.run()
-
-# Get statistics as dictionary
-stats = simulator.get_stats()
-print(f"Total time: {stats['total_time']} seconds")
-print(f"Floors visited: {stats['visited_floors']}")
-
-# Access individual metrics
-travel_time = stats['travel_time']
-door_time = stats['door_operation_time']
-passenger_time = stats['passenger_transfer_time']
 ```
 
 ## Project Structure
@@ -207,6 +185,3 @@ elevator_sim_python/
 - **Main Entry Point**:
   - `main()`: Entry point and command-line interface with logging setup
 
-## License
-
-This project is provided as-is for interview/demonstration purposes.
