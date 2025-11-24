@@ -1,0 +1,9 @@
+# Documentation folder
+elevator_docs/
+
+# Log files
+*.log
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -6,6 +6,9 @@ Simulates an elevator with door operations and passenger transfers.
 
 import sys
 import time
+import logging
+import threading
+from util import validate_floor, parse_input, setup_logging, log_simulation_start, log_simulation_complete
 
 # Constants
 FLOOR_TRAVEL_TIME = 10  # seconds per floor
@@ -28,6 +31,10 @@ class ElevatorSimulator:
         self.door_operation_time = 0
         self.passenger_transfer_time = 0
         self.visited_floors = [start_floor]
+        self.close_door_pressed = threading.Event()
+        self.stop_listener = threading.Event()
+        self.current_state = "idle"  # idle, traveling, doors_open, transferring, doors_closing
+        self.skip_passenger_transfer = False
     
     def print_status(self, message):
         """Print status message."""
@@ -35,26 +42,87 @@ class ElevatorSimulator:
         if self.real_time:
             time.sleep(0.1)
     
+    def keyboard_listener(self):
+        """Listen for keyboard input in a separate thread."""
+        while not self.stop_listener.is_set():
+            try:
+                key = input()
+                if key == 'c':
+                    if self.current_state == "traveling":
+                        print("  ⚠ Doors are already closed (elevator is moving)")
+                        logging.info("Door close button pressed while traveling - ignored")
+                    elif self.current_state in ["doors_open", "transferring"]:
+                        self.close_door_pressed.set()
+                        logging.info(f"Door close button pressed during {self.current_state}")
+                    elif self.current_state == "doors_closing":
+                        # Doors are already closing, ignore
+                        pass
+            except:
+                break
+    
     def open_doors(self, floor):
         """Open doors at a floor."""
+        self.current_state = "doors_open"
         self.print_status(f"The doors are opening on floor {floor}.")
+        actual_time = DOOR_OPEN_TIME
         if self.real_time:
-            time.sleep(DOOR_OPEN_TIME)
-        return DOOR_OPEN_TIME
+            actual_time = self._interruptible_sleep(DOOR_OPEN_TIME, allow_close_button=True, is_door_opening=True)
+        return actual_time
     
     def close_doors(self, floor):
         """Close doors at a floor."""
+        # Clear the flag if it was set (door close button was pressed)
+        if self.close_door_pressed.is_set():
+            self.close_door_pressed.clear()
+            logging.info(f"Closing doors on floor {floor} (door close button was pressed)")
+        
+        # Reset skip flag
+        self.skip_passenger_transfer = False
+        
+        # Doors always take time to close
+        self.current_state = "doors_closing"
         self.print_status(f"The doors are closing on floor {floor}.")
         if self.real_time:
             time.sleep(DOOR_CLOSE_TIME)
+        self.current_state = "idle"
         return DOOR_CLOSE_TIME
+    
+    def _interruptible_sleep(self, duration, allow_close_button=False, is_door_opening=False):
+        """Sleep that can be interrupted by door close button. Returns actual time elapsed."""
+        elapsed = 0
+        step = 0.1  # Check every 100ms
+        while elapsed < duration:
+            if allow_close_button and self.close_door_pressed.is_set():
+                if is_door_opening:
+                    # During door opening, skip passenger transfer and keep flag for close_doors
+                    print("  → Door close button activated - skipping passenger transfer!")
+                    self.skip_passenger_transfer = True
+                    logging.info(f"Door opening interrupted after {elapsed:.1f}s - passenger transfer will be skipped")
+                else:
+                    # During passenger transfer, just skip remaining time
+                    print("  → Door close button activated - Closing doors!")
+                    logging.info(f"Passenger transfer interrupted after {elapsed:.1f}s by door close button press")
+                    self.close_door_pressed.clear()
+                return elapsed
+            sleep_time = min(step, duration - elapsed)
+            time.sleep(sleep_time)
+            elapsed += sleep_time
+        return duration  # Return full duration if not interrupted
     
     def transfer_passengers(self, floor):
         """Handle passenger transfer."""
+        # Check if passenger transfer should be skipped (door close pressed during door opening)
+        if self.skip_passenger_transfer:
+            self.skip_passenger_transfer = False
+            logging.info(f"Skipping passenger transfer on floor {floor}")
+            return 0
+        
+        self.current_state = "transferring"
         self.print_status(f"Passenger transfer on floor {floor}.")
+        actual_time = PASSENGER_TRANSFER_TIME
         if self.real_time:
-            time.sleep(PASSENGER_TRANSFER_TIME)
-        return PASSENGER_TRANSFER_TIME
+            actual_time = self._interruptible_sleep(PASSENGER_TRANSFER_TIME, allow_close_button=True)
+        return actual_time
     
     def travel_to_floor(self, target_floor):
         """Travel from current floor to target floor."""
@@ -66,9 +134,10 @@ class ElevatorSimulator:
                 direction = "up"
             else:
                 direction = "down"
+            self.current_state = "traveling"
+            self.print_status(f"The elevator is traveling {direction} to floor {target_floor} - {travel_time} sec.")
             if self.real_time:
                 time.sleep(travel_time)
-            self.print_status(f"The elevator is traveling {direction} to floor {target_floor} - {travel_time} sec.")
         
         return travel_time
     
@@ -104,10 +173,21 @@ class ElevatorSimulator:
         print(f"Starting floor: {self.current_floor}")
         print(f"Floors to visit: {', '.join(map(str, self.floors_to_visit))}\n")
         
+        if self.real_time:
+            print("Press 'c' + Enter to close doors:")
+            print("  - During door opening: skips passenger transfer")
+            print("  - During passenger transfer: door closure begins\n")
+            # Start keyboard listener in a separate thread
+            listener_thread = threading.Thread(target=self.keyboard_listener, daemon=True)
+            listener_thread.start()
+        
+        logging.info(f"Simulation running - Start floor: {self.current_floor}, Floors to visit: {self.floors_to_visit}")
+        
         for floor in self.floors_to_visit:
             if floor == self.current_floor:
                 # Already at this floor.  Get the time for operations on this floor only, 
                 # then add to totals.
+                logging.info(f"Already at floor {floor} - performing door operations only")
                 door_open = self.open_doors(floor)
                 passenger_transfer = self.transfer_passengers(floor)
                 door_close = self.close_doors(floor)
@@ -116,83 +196,41 @@ class ElevatorSimulator:
                 self.passenger_transfer_time += passenger_transfer
                 self.total_time += door_open + door_close + passenger_transfer
             else:
+                logging.info(f"Visiting floor {floor} from floor {self.current_floor}")
                 time_elapsed, time_elapsed_doors, time_elapsed_passengers, time_elapsed_travel = self.visit_floor(floor)
                 self.travel_time += time_elapsed_travel
                 self.door_operation_time += time_elapsed_doors
                 self.passenger_transfer_time += time_elapsed_passengers
                 self.total_time += time_elapsed
+                logging.info(f"Completed floor {floor} - Time elapsed: {time_elapsed}s (Travel: {time_elapsed_travel}s, Doors: {time_elapsed_doors}s, Passengers: {time_elapsed_passengers}s)")
         
-        print(f"\n=== Simulation Complete ===")
-        print(f"Total operations time: {self.total_time} seconds")
-        print(f"Total door operations time(open + close): {self.door_operation_time} seconds")
-        print(f"Total passenger transfer time: {self.passenger_transfer_time} seconds")
-        print(f"Total travel time: {self.travel_time} seconds")
-        print(f"Floors visited in order: {','.join(map(str, self.visited_floors))}\n")
+        # Stop keyboard listener
+        if self.real_time:
+            self.stop_listener.set()
         
         return self.total_time, self.visited_floors
-
-
-def validate_floor(floor):
-    """Check if floor is within valid range."""
-    if floor < MIN_FLOOR or floor > MAX_FLOOR:
-        raise ValueError(f"Floor {floor} is out of range. Valid floors are {MIN_FLOOR} to {MAX_FLOOR}.")
-
-
-def parse_input(input_str):
-    """Parse input string to get start floor and floors to visit."""
-    input_str = input_str.strip()
     
-    # Format: "start=12 floor=2,9,1,32"
-    if "start=" not in input_str or "floor=" not in input_str:
-        raise ValueError("Invalid input format. Expected: 'start=X floor=Y,Z,...'")
-    
-    # Extract start floor value
-    start_idx = input_str.find("start=")
-    floor_idx = input_str.find("floor=")
-    
-    # Get the value after "start=" (everything until "floor=" or end)
-    if start_idx < floor_idx:
-        start_floor_str = input_str[start_idx + 6:floor_idx].strip()  # 6 = len("start=")
-    else:
-        start_floor_str = input_str[start_idx + 6:].strip()
-    
-    # Get the value after "floor=" (everything after it)
-    floors_str = input_str[floor_idx + 6:].strip()  # 6 = len("floor=")
-    
-    # Validate and convert start floor
-    if not start_floor_str:
-        raise ValueError("Start floor cannot be empty. Expected: 'start=X' where X is a number.")
-    try:
-        start_floor = int(start_floor_str)
-    except ValueError:
-        raise ValueError(f"Start floor must be a number. Got: '{start_floor_str}'")
-    
-    # Validate and convert floor list
-    if not floors_str:
-        raise ValueError("Floor list cannot be empty. Expected: 'floor=Y,Z,...' where Y,Z are numbers.")
-    
-    floors = []
-    for f in floors_str.split(","):
-        f_clean = f.strip()
-        if not f_clean:  # Skip empty strings between commas
-            continue
-        try:
-            floors.append(int(f_clean))
-        except ValueError:
-            raise ValueError(f"All floors must be numbers. Got: '{f_clean}'")
-    
-    if not floors:
-        raise ValueError("At least one floor must be specified in the floor list.")
-    
-    return start_floor, floors
+    def get_stats(self):
+        """Return simulation statistics as a dictionary."""
+        return {
+            'total_time': self.total_time,
+            'travel_time': self.travel_time,
+            'door_operation_time': self.door_operation_time,
+            'passenger_transfer_time': self.passenger_transfer_time,
+            'visited_floors': self.visited_floors.copy()
+        }
 
 
 def main():
     """Main function."""
+    # Setup logging to file
+    setup_logging()
+    
     if len(sys.argv) < 2:
         print("Usage: python3 elevator_sim.py 'start=12 floor=2,9,1,32' [--real-time]")
         print("\nNote: [--real-time] is optional. Do not include the brackets in the command.")
         print("      Use: python3 elevator_sim.py 'start=12 floor=2,9,1,32' --real-time")
+        print("\nLog output is saved to elevator_sim.log")
         sys.exit(1)
     
     # Check for --real-time flag
@@ -201,21 +239,39 @@ def main():
     if len(sys.argv) > 2 and "--real-time" in sys.argv:
         real_time = True
     
+    log_simulation_start(input_str, real_time)
+    
     try:
         start_floor, floors_to_visit = parse_input(input_str)
+        logging.info(f"Parsed input - Start floor: {start_floor}, Floors to visit: {floors_to_visit}")
         
         # Validate all floors are within range
         validate_floor(start_floor)
         for floor in floors_to_visit:
             validate_floor(floor)
+        logging.info("All floors validated successfully")
         
         simulator = ElevatorSimulator(start_floor, floors_to_visit, real_time=real_time)
-        total_time, visited_floors = simulator.run()
-        print(f"OUTPUT: {total_time} {','.join(map(str, visited_floors))}")
+        simulator.run()
+        
+        # Display statistics
+        stats = simulator.get_stats()
+        print(f"\n=== Simulation Complete ===")
+        print(f"Total Operations Time: {stats['total_time']} seconds")
+        print(f"Total Travel Time: {stats['travel_time']} seconds")
+        print(f"Total Door Operations Time(open + close): {stats['door_operation_time']} seconds")
+        print(f"Total Passenger Transfers Time: {stats['passenger_transfer_time']} seconds")
+        print(f"Floors Visited: {','.join(map(str, stats['visited_floors']))}")
+        
+        # Log statistics
+        log_simulation_complete(stats)
+        
     except ValueError as e:
+        logging.error(f"Validation error: {e}")
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
+        logging.warning("Simulation interrupted by user")
         print("\nSimulation interrupted.")
         sys.exit(1)
 
