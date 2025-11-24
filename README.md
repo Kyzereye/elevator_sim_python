@@ -8,7 +8,8 @@ A real-time elevator simulation script written in Python that models elevator be
 - Door opening/closing operations (2 seconds each)
 - Passenger transfer time (4 seconds)
 - Floor-to-floor travel time (10 seconds per floor)
-- Command-line interface with flexible input formats
+- Detailed time breakdown (travel time, door operations, passenger transfers)
+- Command-line interface with key-value input format
 
 ## Requirements
 
@@ -23,18 +24,12 @@ A real-time elevator simulation script written in Python that models elevator be
 python3 elevator_sim.py "start=12 floor=2,9,1,32"
 ```
 
-Or with alternative format:
+### Real-Time Mode (With Delays)
+
+To run with real-time delays for demonstration:
 
 ```bash
-python3 elevator_sim.py "12 2,9,1,32"
-```
-
-### Fast Mode (No Delays)
-
-To calculate instantly without real-time delays:
-
-```bash
-python3 elevator_sim.py "start=12 floor=2,9,1,32" --no-delay
+python3 elevator_sim.py "start=12 floor=2,9,1,32" --real-time
 ```
 
 ### Example Output
@@ -55,10 +50,13 @@ The doors are closing on floor 9.
 ...
 
 === Simulation Complete ===
+Total time: 592 seconds
+Total door operation time: 16 seconds
+Total passenger transfer time: 16 seconds
 Total travel time: 560 seconds
 Floors visited in order: 12,2,9,1,32
 
-OUTPUT: 560 12,2,9,1,32
+OUTPUT: 592 12,2,9,1,32
 ```
 
 ## Program Constants
@@ -86,7 +84,7 @@ OUTPUT: 560 12,2,9,1,32
 
 7. **Starting floor is included in visited floors** - The output includes the starting floor as the first floor in the visited list.
 
-8. **Real-time mode is default** - By default, the simulation runs with real-time delays. Use `--no-delay` flag for instant calculation.
+8. **Instant calculation is default** - By default, the simulation calculates instantly without delays. Use `--real-time` flag to enable real-time delays for demonstration.
 
 9. **Floor limits** - Valid floors are 1 (ground floor) to 35 (top floor). No basement floors. The program will reject any floor outside this range.
 
@@ -122,7 +120,7 @@ OUTPUT: <total_time> <start_floor>,<floor1>,<floor2>,...
 ## Code Structure
 
 - `ElevatorSimulator` class: Main simulation logic
-- `parse_input()`: Parses command-line input in multiple formats
+- `parse_input()`: Parses command-line input in key-value format
 - `main()`: Entry point and command-line interface
 - Individual simulation methods for each operation (travel, door operations, passenger transfer)
 
