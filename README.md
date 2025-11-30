@@ -21,12 +21,88 @@ A real-time elevator simulation script written in Python that models elevator be
 - Python 3.6 or higher
 - No external dependencies (uses only standard library)
 
+## Setup
+
+### Installation
+
+1. **Clone or download the project:**
+   ```bash
+   git clone <repository-url>
+   cd elevator
+   ```
+
+2. **Verify Python version:**
+   ```bash
+   python3 --version
+   # Should be Python 3.6 or higher
+   ```
+
+3. **No additional installation required!**
+   - The project uses only Python standard library modules
+   - No `pip install` or virtual environment needed
+
+### Project Structure
+
+```
+elevator/
+├── elevator_sim.py          # Main simulation script
+├── test_elevator.py         # Test suite (unittest)
+├── classes/                  # Elevator classes module
+│   ├── __init__.py          # Package initialization with exports
+│   ├── timer.py             # Timer class (composition example)
+│   ├── elevator.py          # Base Elevator class
+│   ├── standard_elevator.py # StandardElevator class
+│   └── fast_elevator.py     # FastElevator class
+├── util/                     # Utility module
+│   ├── __init__.py          # Package initialization
+│   ├── constants.py         # Shared constants (MIN_FLOOR, MAX_FLOOR)
+│   ├── helpers.py           # Input parsing and validation functions
+│   └── logging_helpers.py   # Logging configuration and helper functions
+├── elevator_sim.log         # Log file (generated during runtime)
+└── README.md                # This file
+```
+
+### Code Organization
+
+- **Classes Module** (`classes/`): All elevator-related classes organized in their own package
+  - **Base Class**: `Elevator` (in `classes/elevator.py`) - Contains all common elevator behavior
+  - **Subclasses**: 
+    - `StandardElevator` (in `classes/standard_elevator.py`) - Normal timing (10 seconds per floor)
+    - `FastElevator` (in `classes/fast_elevator.py`) - Faster travel (5 seconds per floor)
+  - **Composition**: `Timer` class (in `classes/timer.py`) - Manages time operations
+- **Helper Modules** (`util/`): Input parsing, validation, and logging utilities
+- **Type Hints**: All functions and methods include type annotations for improved code clarity and maintainability
+
+### Quick Start
+
+1. **Make the script executable (optional):**
+   ```bash
+   chmod +x elevator_sim.py
+   ```
+
+2. **Run a simulation:**
+   ```bash
+   python3 elevator_sim.py "start=12 floor=2,9,1,32"
+   ```
+
+That's it! The simulation will run and display results.
+
 ## Usage
 
-### Basic Usage
+### Basic Usage (Standard Elevator)
 
 ```bash
 python3 elevator_sim.py "start=12 floor=2,9,1,32"
+```
+
+This uses the **StandardElevator** with normal timing (10 seconds per floor).
+
+### Fast Elevator
+
+To use the **FastElevator** (5 seconds per floor - twice as fast):
+
+```bash
+python3 elevator_sim.py "start=12 floor=2,9,1,32" --fast
 ```
 
 ### Real-Time Mode (With Delays)
@@ -34,7 +110,11 @@ python3 elevator_sim.py "start=12 floor=2,9,1,32"
 To run with real-time delays for demonstration:
 
 ```bash
+# Standard elevator with real-time delays
 python3 elevator_sim.py "start=12 floor=2,9,1,32" --real-time
+
+# Fast elevator with real-time delays
+python3 elevator_sim.py "start=12 floor=2,9,1,32" --real-time --fast
 ```
 
 **Interactive Control:** In real-time mode, you can press **`c`** followed by **Enter** while doors are opening or passengers are transferring to activate the door close button. This will:
@@ -74,10 +154,19 @@ Floors Visited: 12,2,9,1,32
 
 ## Program Constants
 
+### Standard Elevator (Default)
 - **Single floor travel time**: 10 seconds
 - **Door opening time**: 2 seconds
 - **Door closing time**: 2 seconds
 - **Passenger transfer time**: 4 seconds
+
+### Fast Elevator (--fast flag)
+- **Single floor travel time**: 5 seconds (twice as fast)
+- **Door opening time**: 2 seconds (same as standard)
+- **Door closing time**: 2 seconds (same as standard)
+- **Passenger transfer time**: 4 seconds (same as standard)
+
+### Building Configuration
 - **Minimum floor**: 1 (ground floor, no basement)
 - **Maximum floor**: 35
 
@@ -97,6 +186,8 @@ Floors Visited: 12,2,9,1,32
 
 7. **Floor limits** - Valid floors are 1 (ground floor) to 35 (top floor). No basement floors. The program will reject any floor outside this range.
 
+8. **Floor numbers are integers only** - All floor numbers must be whole integers. No floating-point numbers (e.g., 1.5, 2.3) or alphanumeric floor designations (e.g., 1a, 2b) are supported. The program will reject any non-integer floor input.
+
 ## Features Not Implemented
 
 1. **Route optimization** - The elevator doesn't optimize the route to minimize travel time. It visits floors in the exact order specified.
@@ -112,6 +203,34 @@ Floors Visited: 12,2,9,1,32
 6. **Concurrent requests** - No handling of new floor requests while the elevator is in motion.
 
 ## Testing
+
+### Running the Test Suite
+
+The project includes a comprehensive test suite using Python's `unittest` module (standard library, no external dependencies):
+
+```bash
+python3 test_elevator.py
+```
+
+For verbose output showing all test cases:
+
+```bash
+python3 test_elevator.py -v
+```
+
+### Test Coverage
+
+The test suite includes:
+
+- **Timer Class Tests**: Static methods, initialization, sleep functionality
+- **Floor Validation Tests**: Valid/invalid floor ranges, boundary conditions
+- **Input Parsing Tests**: Valid inputs, whitespace handling, error cases
+- **Elevator Class Tests**: Initialization, property validation, composition, travel calculations
+- **StandardElevator Tests**: Inheritance verification, timing calculations
+- **FastElevator Tests**: Inheritance, polymorphism, timing differences
+- **Integration Tests**: Complete simulation flows, edge cases
+
+### Manual Testing
 
 Test with the example from the requirements:
 
@@ -146,24 +265,28 @@ Log entries are appended to the file, so you can track multiple simulation runs 
 ...
 ```
 
-## Project Structure
-
-```
-elevator_sim_python/
-├── elevator_sim.py          # Main simulation script
-├── util/                     # Utility module
-│   ├── __init__.py          # Package initialization
-│   ├── helpers.py           # Input parsing and validation functions
-│   └── logging_helpers.py   # Logging configuration and helper functions
-├── elevator_sim.log         # Log file (generated during runtime)
-└── README.md                # This file
-```
 
 ## Code Structure
 
 ### Main Components
 
-- **`ElevatorSimulator` class**: Main simulation logic
+All classes are located in the `classes/` package directory:
+
+- **`Elevator` class** (in `classes/elevator.py`): Base class containing all common elevator behavior and methods
+  - Class constants: `FLOOR_TRAVEL_TIME`, `DOOR_OPEN_TIME`, `DOOR_CLOSE_TIME`, `PASSENGER_TRANSFER_TIME`
+  - Common methods: `run()`, `visit_floor()`, `travel_to_floor()`, `open_doors()`, `close_doors()`, `transfer_passengers()`, etc.
+
+- **`StandardElevator` class** (in `classes/standard_elevator.py`): Inherits from `Elevator`, uses default timing (10 seconds per floor)
+
+- **`FastElevator` class** (in `classes/fast_elevator.py`): Inherits from `Elevator`, overrides `FLOOR_TRAVEL_TIME = 5` (faster travel)
+  - Overrides `run()` method to display "Using the express elevator!" message
+
+- **`Timer` class** (in `classes/timer.py`): Demonstrates composition - Elevator HAS-A Timer
+  - Manages time operations (sleep, calculate_travel_time)
+  - Encapsulates timing logic separate from elevator behavior
+  - Contains static method `calculate_travel_time()` for utility calculations
+
+- **Common Elevator Methods**:
   - `run()`: Executes the simulation with optional keyboard listener thread
   - `get_stats()`: Returns simulation statistics as a dictionary
   - `visit_floor()`: Handles complete floor visit sequence
@@ -181,6 +304,8 @@ elevator_sim_python/
     - `setup_logging()`: Configures logging system
     - `log_simulation_start()`: Logs simulation start information
     - `log_simulation_complete()`: Logs completion with statistics
+    - `simulation_instructions()`: Displays usage instructions
+    - `door_control_instructions()`: Displays door control instructions
 
 - **Main Entry Point**:
   - `main()`: Entry point and command-line interface with logging setup

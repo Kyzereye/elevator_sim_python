@@ -2,9 +2,7 @@
 Helper functions for input parsing and validation.
 """
 
-# Constants for floor validation
-MIN_FLOOR = 1   # bottom floor
-MAX_FLOOR = 35  # top floor
+from util.constants import MIN_FLOOR, MAX_FLOOR
 
 
 def validate_floor(floor):
@@ -52,7 +50,8 @@ def parse_input(input_str):
         if not f_clean:  # Skip empty strings between commas
             continue
         try:
-            floors.append(int(f_clean))
+            # floors.append(int(f_clean))
+            floors = [int(f.strip()) for f in floors_str.split(",") if f.strip()]
         except ValueError:
             raise ValueError(f"All floors must be numbers. Got: '{f_clean}'")
     
@@ -61,3 +60,4 @@ def parse_input(input_str):
     
     return start_floor, floors
 
+# floors = [int(f.strip()) for f in floors_str.split(",") if f.strip()]
