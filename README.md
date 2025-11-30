@@ -71,7 +71,6 @@ elevator/
     - `FastElevator` (in `classes/fast_elevator.py`) - Faster travel (5 seconds per floor)
   - **Composition**: `Timer` class (in `classes/timer.py`) - Manages time operations
 - **Helper Modules** (`util/`): Input parsing, validation, and logging utilities
-- **Type Hints**: All functions and methods include type annotations for improved code clarity and maintainability
 
 ### Quick Start
 

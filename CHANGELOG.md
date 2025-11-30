@@ -14,10 +14,8 @@ This document describes the changes made to the elevator simulation project sinc
 6. **Enhanced Input Validation** - Added numeric validation and whitespace handling
 7. **Changed Default Behavior** - Instant calculation is now default (was real-time)
 8. **Added Fast Elevator Option** - New `--fast` flag for faster elevator type with method polymorphism
-9. **Code Cleanup** - Removed unnecessary backward compatibility alias
-10. **Added Type Hints** - All functions and methods now include type annotations
-11. **Refactored File Organization** - Moved all classes into separate files within a `classes/` directory package
-12. **Added Test Suite** - Comprehensive test suite using Python's unittest module (32 test cases)
+9. **Refactored File Organization** - Moved all classes into separate files within a `classes/` directory package
+10. **Added Test Suite** - Comprehensive test suite using Python's unittest module (32 test cases)
 
 ---
 
@@ -101,17 +99,7 @@ This document describes the changes made to the elevator simulation project sinc
 
 ---
 
-## 9. Type Hints Implementation
-
-**Before:** No type annotations on functions or methods
-
-**After:** All function and method signatures include type hints with return types
-
-**Why:** Improved code clarity, better IDE support, enables static analysis, professional practice
-
----
-
-## 10. File Organization Refactoring
+## 9. File Organization Refactoring
 
 **Before:** All classes in single `elevator_sim.py` file (350+ lines)
 
@@ -127,7 +115,7 @@ This document describes the changes made to the elevator simulation project sinc
 
 ---
 
-## 11. Test Suite Implementation
+## 10. Test Suite Implementation
 
 **Before:** No automated tests, manual testing only
 
@@ -170,6 +158,6 @@ Elevator HAS-A Timer
 
 ## Summary
 
-These changes enhance the code by demonstrating OOP principles (inheritance, polymorphism, properties, composition), improving code organization, enhancing robustness, and following modern Python best practices including type hints, professional file structure, and comprehensive testing.
+These changes enhance the code by demonstrating OOP principles (inheritance, polymorphism, properties, composition), improving code organization, enhancing robustness, and following modern Python best practices including professional file structure and comprehensive testing.
 
 All changes maintain the original functionality while adding new features and demonstrating advanced OOP concepts.

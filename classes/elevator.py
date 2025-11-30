@@ -5,7 +5,6 @@ Base Elevator class with common behavior.
 import time
 import logging
 import threading
-from typing import List, Dict, Tuple, Union
 from .timer import Timer
 from util import validate_floor, door_control_instructions
 
@@ -19,7 +18,7 @@ class Elevator:
     DOOR_CLOSE_TIME = 2     # seconds to close doors
     PASSENGER_TRANSFER_TIME = 4  # seconds for passenger transfer
     
-    def __init__(self, start_floor: int, floors_to_visit: List[int], real_time: bool = False) -> None:
+    def __init__(self, start_floor, floors_to_visit, real_time=False):
         self._current_floor = None  # Private attribute (will be set via property)
         self.current_floor = start_floor  # Use property setter for validation
         self.floors_to_visit = floors_to_visit
@@ -38,25 +37,25 @@ class Elevator:
         self.timer = Timer(real_time=real_time)
     
     @property
-    def current_floor(self) -> int:
+    def current_floor(self):
         """Getter: Return current floor."""
         return self._current_floor
     
     @current_floor.setter
-    def current_floor(self, value: int) -> None:
+    def current_floor(self, value):
         """Setter: Set current floor with validation."""
         if not isinstance(value, int):
             raise TypeError(f"Floor must be an integer. Got: {type(value).__name__}")
         validate_floor(value)  # Validate floor is in valid range
         self._current_floor = value
     
-    def print_status(self, message: str) -> None:
+    def print_status(self, message):
         """Print status message."""
         print(message)
         if self.real_time:
             self.timer.sleep(0.1)
     
-    def keyboard_listener(self) -> None:
+    def keyboard_listener(self):
         """Listen for keyboard input in a separate thread."""
         while not self.stop_listener.is_set():
             try:
@@ -74,7 +73,7 @@ class Elevator:
             except:
                 break
     
-    def open_doors(self, floor: int) -> float:
+    def open_doors(self, floor):
         """Open doors at a floor."""
         self.current_state = "doors_open"
         self.print_status(f"The doors are opening on floor {floor}.")
@@ -83,7 +82,7 @@ class Elevator:
             actual_time = self._interruptible_sleep(self.DOOR_OPEN_TIME, allow_close_button=True, is_door_opening=True)
         return actual_time
     
-    def close_doors(self, floor: int) -> int:
+    def close_doors(self, floor):
         """Close doors at a floor."""
         # Clear the flag if it was set (door close button was pressed)
         if self.close_door_pressed.is_set():
@@ -100,7 +99,7 @@ class Elevator:
         self.current_state = "idle"
         return self.DOOR_CLOSE_TIME
     
-    def _interruptible_sleep(self, duration: float, allow_close_button: bool = False, is_door_opening: bool = False) -> float:
+    def _interruptible_sleep(self, duration, allow_close_button=False, is_door_opening=False):
         """Sleep that can be interrupted by door close button. Returns actual time elapsed."""
         elapsed = 0
         step = 0.1  # Check every 100ms
@@ -122,7 +121,7 @@ class Elevator:
             elapsed += sleep_time
         return duration  # Return full duration if not interrupted
     
-    def transfer_passengers(self, floor: int) -> float:
+    def transfer_passengers(self, floor):
         """Handle passenger transfer."""
         # Check if passenger transfer should be skipped (door close pressed during door opening)
         if self.skip_passenger_transfer:
@@ -137,7 +136,7 @@ class Elevator:
             actual_time = self._interruptible_sleep(self.PASSENGER_TRANSFER_TIME, allow_close_button=True)
         return actual_time
     
-    def travel_to_floor(self, target_floor: int) -> int:
+    def travel_to_floor(self, target_floor):
         """Travel from current floor to target floor."""
         floors_to_travel = abs(target_floor - self.current_floor)
         travel_time = self.timer.calculate_travel_time(floors_to_travel, self.FLOOR_TRAVEL_TIME)
@@ -153,7 +152,7 @@ class Elevator:
         
         return travel_time
     
-    def visit_floor(self, target_floor: int) -> Tuple[float, float, float, int]:
+    def visit_floor(self, target_floor):
         """Complete process of visiting a floor."""
         time_elapsed = 0
         time_elapsed_doors = 0
@@ -179,7 +178,7 @@ class Elevator:
         
         return time_elapsed, time_elapsed_doors, time_elapsed_passengers, time_elapsed_travel
     
-    def run(self) -> Tuple[int, List[int]]:
+    def run(self):
         """Run the simulation."""
         print(f"\n=== Elevator Simulation Starting ===")
         print(f"Starting floor: {self.current_floor}")
@@ -220,7 +219,7 @@ class Elevator:
         
         return self.total_time, self.visited_floors
     
-    def get_stats(self) -> Dict[str, Union[int, List[int]]]:
+    def get_stats(self):
         """Return simulation statistics as a dictionary."""
         return {
             'total_time': self.total_time,

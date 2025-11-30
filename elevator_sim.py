@@ -10,7 +10,7 @@ from util import parse_input, setup_logging, log_simulation_start, log_simulatio
 from classes import StandardElevator, FastElevator
 
 
-def main() -> None:
+def main():
     """Main function."""
     # Setup logging to file
     setup_logging()
